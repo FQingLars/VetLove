@@ -1,0 +1,53 @@
+name: critter_collect
+description: "AR-приложение для поиска животных, коллекционирования карточек и трейдов поблизости."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Камера и AR
+  camera: ^0.11.0            # видеопоток с камеры (режим AR)
+  image: ^4.2.0              # обработка кадров для распознавания
+  sensors_plus: ^6.0.1       # акселерометр/гироскоп — ориентация устройства в AR
+
+  # Состояние и навигация
+  provider: ^6.1.2
+  go_router: ^14.2.0
+
+  # Хранение / сеть
+  hive_flutter: ^1.1.0       # локальная БД коллекции и настроек
+  hive: ^2.2.3
+  dio: ^5.5.0+1              # REST-клиент к бэкенду аккаунтов/трейдов
+
+  # геолокация и ближайшие трейды
+  geolocator: ^12.0.0
+
+  # Распознавание видов через внешний API (серверная ML-модель iNaturalist)
+  # — вместо локальной TFLite-модели: легче APK/IPA, меньше расход батареи.
+
+  # Прочее
+  firebase_auth: ^5.1.0      # аккаунты (Google/Apple/email)
+  cloud_firestore: ^5.4.0    # профиль, обменники, трейды в реальном времени
+  firebase_core: ^3.4.0
+  google_sign_in: ^6.2.4
+  sign_in_with_apple: ^6.1.0
+  cached_network_image: ^3.3.1
+  share_plus: ^9.0.0
+  uuid: ^4.4.2
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/animals/
+    - assets/cards/
