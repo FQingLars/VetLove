@@ -186,23 +186,30 @@ jobs:
       # firebase_auth 5.x под Xcode 16 падает с
       # -Werror,-Wnon-modular-include-in-framework-module: плагин включает
       # Firebase.h как non-modular header внутри framework module.
+      # CocoaPods допускает только один post_install, поэтому настройки
+      # встраиваются в уже сгенерированный Flutter блок, а не добавляются вторым.
       - name: Relax Xcode 16 module warnings for pods
         run: |
-          cat >> ios/Podfile <<'RUBY'
-
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-                flags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-                unless flags.include?('non-modular-include-in-framework-module')
-                  config.build_settings['OTHER_CFLAGS'] = "#{flags} -Wno-non-modular-include-in-framework-module"
-                end
-              end
-            end
-          end
-          RUBY
-          tail -15 ios/Podfile
+          cat > /tmp/patch_podfile.rb <<'EOS'
+          path = 'ios/Podfile'
+          src = File.read(path)
+          needle = "    flutter_additional_ios_build_settings(target)\n"
+          abort 'anchor not found in Podfile' unless src.include?(needle)
+          extra = [
+            "    target.build_configurations.each do |config|",
+            "      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'",
+            "      flags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'",
+            "      unless flags.include?('non-modular-include-in-framework-module')",
+            "        config.build_settings['OTHER_CFLAGS'] = \"\#{flags} -Wno-non-modular-include-in-framework-module\"",
+            "      end",
+            "    end",
+            ""
+          ].join("\n")
+          File.write(path, src.sub(needle, needle + extra))
+          puts 'Podfile patched'
+          EOS
+          ruby /tmp/patch_podfile.rb
+          grep -n 'non-modular' ios/Podfile
 
       - name: Install dependencies
         run: flutter pub get
