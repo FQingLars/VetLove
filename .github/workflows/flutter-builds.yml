@@ -211,6 +211,15 @@ jobs:
           ruby /tmp/patch_podfile.rb
           grep -n 'non-modular' ios/Podfile
 
+          # Таргет Runner компилирует заголовки framework'ов плагинов, и его
+          # build settings не покрываются post_install для Pods — правим xcconfig.
+          for cfg in ios/Flutter/Debug.xcconfig ios/Flutter/Release.xcconfig; do
+            [ -f "$cfg" ] || continue
+            grep -q 'non-modular-include-in-framework-module' "$cfg" || \
+              echo 'OTHER_CFLAGS=$(inherited) -Wno-non-modular-include-in-framework-module' >> "$cfg"
+          done
+          grep -n 'non-modular' ios/Flutter/*.xcconfig
+
       - name: Install dependencies
         run: flutter pub get
 
