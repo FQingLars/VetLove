@@ -123,17 +123,18 @@ jobs:
           flutter build appbundle --release \
             --dart-define=INATURALIST_API_KEY="$INATURALIST_KEY"
 
+      # Пути с префиксом app/: defaults.run.working-directory не действует на
+      # шаги uses:, upload-artifact выполняется от корня репозитория.
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: |
-            build/app/outputs/flutter-apk/*.apk
+          path: app/build/app/outputs/flutter-apk/*.apk
           retention-days: 30
 
       - uses: actions/upload-artifact@v4
         with:
           name: android-aab
-          path: build/app/outputs/bundle/release/*.aab
+          path: app/build/app/outputs/bundle/release/*.aab
           retention-days: 30
 
   ios:
@@ -169,12 +170,11 @@ jobs:
 
       # Часть плагинов (sign_in_with_apple, firebase_* ) требует iOS 13+,
       # шаблон Flutter 3.24 выставляет 12.0 — иначе CocoaPods падает.
-      - name: Normalize iOS build settings
+      - name: Set iOS deployment target
         run: |
           sed -i '' \
             -e 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' \
             -e 's/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' \
-            -e 's/PRODUCT_NAME = [^;]*;/PRODUCT_NAME = Runner;/g' \
             ios/Runner.xcodeproj/project.pbxproj
           if [ -f ios/Podfile ]; then
             sed -i '' \
@@ -182,7 +182,6 @@ jobs:
               -e "s/^platform :ios, '12.0'/platform :ios, '15.0'/" \
               ios/Podfile
           fi
-          grep -c 'PRODUCT_NAME = Runner;' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Install dependencies
         run: flutter pub get
@@ -195,13 +194,16 @@ jobs:
           /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string 'Поиск трейдов поблизости'" ios/Runner/Info.plist || true
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Загрузка фото для распознавания'" ios/Runner/Info.plist || true
 
-      - name: Build unsigned .app
+      # Сборка под симулятор: подпись не требуется вовсе, поэтому результат
+      # не зависит от наличия Apple Developer аккаунта.
+      - name: Build .app for simulator
         run: |
-          flutter build ios --release --no-codesign \
+          flutter build ios --simulator --release \
             --dart-define=INATURALIST_API_KEY="$INATURALIST_KEY"
+          ls -d build/ios/iphonesimulator/*.app
 
       - uses: actions/upload-artifact@v4
         with:
           name: ios-app
-          path: build/ios/iphoneos/*.app
+          path: app/build/ios/iphonesimulator/*.app
           retention-days: 30
