@@ -47,6 +47,14 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+dependency_overrides:
+  # geolocator_android 4.6.2 использует `compileSdk flutter.compileSdkVersion`.
+  # Расширение `flutter` инжектится Flutter Gradle Plugin в проект плагина
+  # только начиная с Flutter 3.27, поэтому на 3.24 сборка падает с
+  # "Could not get unknown property 'flutter' for extension 'android'".
+  # 4.6.1 — последняя версия с фиксированным compileSdk 34.
+  geolocator_android: 4.6.1
+
 flutter:
   uses-material-design: true
   assets:
