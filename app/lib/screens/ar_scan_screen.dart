@@ -172,7 +172,7 @@ class _DetectionBox extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
+                color: Colors.black.withOpacity(0.7),
                 borderRadius: BorderRadius.circular(6)),
             child: Text(
               '${detection.species.nameRu} ${(detection.confidence * 100).round()}%',

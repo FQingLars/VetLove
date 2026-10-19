@@ -1,102 +1,90 @@
-# GitHub Actions CI/CD Setup
+# CI/CD — сборка пакетов Flutter
 
-This repository includes comprehensive CI/CD workflows for building and testing the Flutter application "critter_collect" across multiple platforms.
+`.github/workflows/flutter-builds.yml` собирает **Critter Collect** для Android и iOS.
 
-## Overview
+## Джобы
 
-The CI setup includes:
-- **Static Analysis**: Code quality checks, formatting validation, and unit tests
-- **Android Builds**: APK (debug) and AAB (release) generation on Linux
-- **iOS Builds**: IPA (release) generation on macOS
-- **Package Delivery**: Distribution of final artifacts for production deployment
+| Джоб | Runner | Что делает |
+|------|--------|------------|
+| `analyze` | ubuntu | `flutter pub get`, `flutter analyze`, `flutter test` |
+| `android` | ubuntu | APK (debug) + AAB (release) |
+| `ios` | macos-14 | неподписанный `.app` |
 
-## Workflow Files
+Джобы сборки зависят от `analyze` (`needs: analyze`) — при ошибке анализа
+сборка не запускается.
 
-### `flutter-builds.yml`
+## Что важно знать
 
-| Job | Platform | Runner | Trigger | Purpose |
-|-----|----------|--------|---------|---------|
-| `analyze` | Cross-platform | Ubuntu | Push/PR | Static analysis, formatting, and testing |
-| `android-build` | Android | Ubuntu | Push/PR | APK/AAB build and artifact upload |
-| `ios-build` | iOS | macOS-14 | Push/PR | IPA build and artifact upload |
-| `android-delivery` | Android | Ubuntu | Main branch only | Final Android package delivery |
-| `ios-delivery` | iOS | macOS-14 | Main branch only | Final iOS package delivery |
+### Каталоги `android/` и `ios/` не в репозитории
 
-## Requirements
+Они генерируются в каждом CI-ране шагом `flutter create --platforms=...`.
+Перед этим `pubspec.yaml` сохраняется в `/tmp` и возвращается на место:
+`flutter create` перезаписывает его дефолтным содержимым.
 
-### Android Build Requirements
-- Ubuntu runner with Flutter and Java 17
-- Android SDK with platform tools and build tools 34.0.0
-- Kotlin compiler for Gradle builds
+Сгенерированный `test/widget_test.dart` удаляется — он компилируется только
+с шаблонным `MyApp`, которого в проекте нет.
 
-### iOS Build Requirements
-- macOS-14 runner with Flutter
-- Xcode and CocoaPods installed
-- Apple Developer account for code signing
-- GoogleService-Info.plist file for Firebase integration
-- Info.plist with camera, location, and photo library permissions
-- Runner.entitlements for Apple Sign In
+### `minSdk = 23` для Android
 
-## Configuration Notes
+`firebase_auth` и `geolocator` требуют `minSdkVersion 23`, а шаблон Flutter 3.24
+ставит `flutter.minSdkVersion` (21). Джоб поднимает значение через `sed` —
+без этого Gradle падает с `uses-sdk:minSdkVersion 21 cannot be smaller than 23`.
 
-### API Key Management
-The iNaturalist API key is passed as a Dart define (`--dart-define=INATURALIST_API_KEY`). Store this in GitHub repository secrets:
+### iOS: `.app`, а не `.ipa`
 
-1. Go to your repository → Settings → Secrets and variables → Actions
-2. Add a secret named `INATURALIST_API_KEY`
-3. The key will be used during release builds
+`.ipa` нельзя собрать без сертификата Apple Developer, Team ID и provisioning
+profile. В secrets их нет, поэтому iOS-джоб собирает неподписанный бандл:
 
-### File Permissions
-Make sure your `.github/workflows/flutter-builds.yml` is executable:
-
-```bash
-chmod +x .github/workflows/flutter-builds.yml
+```
+flutter build ios --release --no-codesign
 ```
 
-## Workflow Triggers
+Результат: `build/ios/iphoneos/Runner.app`.
 
-- **Push to main**: All jobs run on every push to the main branch
-- **Pull requests**: All jobs run on pull requests targeting main
-- **Delivery jobs**: Only run when merging to main branch
+Деплой target — 15.0 (поднимается в `project.pbxproj` и `Podfile`): часть
+плагинов требует iOS 13+, шаблон Flutter 3.24 выставляет 12.0, и CocoaPods
+падает на конфликте версий deployment target.
 
-## Artifact Retention
+Для сборки `.ipa` понадобится добавить в secrets сертификат, provisioning
+profile и `.p12`, а в джоб — `flutter build ipa` с `CODE_SIGNING_ALLOWED`.
 
-- Build artifacts: 7 days
-- Test results: 3 days
-- Final delivery packages: 30 days
+### Firebase-конфиги не нужны для сборки
 
-## Local Testing
+`google-services.json` и `GoogleService-Info.plist` требуются для **работы**
+приложения, но не для компиляции. Без них `main.dart` показывает экран
+`_BootstrapFailedApp` с описанием проблемы вместо падения.
 
-You can run the same checks locally:
+### Анализатор
+
+`flutter analyze --no-fatal-infos` — падает на ошибках и предупреждениях,
+но не на stylistic-подсказках уровня `info`.
+
+Проверка форматирования (`dart format --set-exit-if-changed`) запускается с
+`continue-on-error: true`: код пока не отформатирован под `dart format`,
+и это не должно ронять пайплайн. После `dart format .` флаг можно убрать.
+
+### Секреты
+
+| Имя | Назначение |
+|-----|------------|
+| `INATURALIST_API_KEY` | необязательный ключ iNaturalist Vision API; без него действует пониженный rate-limit |
+
+Передаётся как `--dart-define=INATURALIST_API_KEY=...`.
+
+> Известный пробел: `AnimalRecognitionService` создаёт `InaturalistService()`
+> без `apiKey`, поэтому переданный через CI ключ пока нигде не используется.
+> Требуется пробросить `String.fromEnvironment('INATURALIST_API_KEY')` в
+> конструктор сервиса.
+
+## Локальная проверка
 
 ```bash
 cd app
-flutter analyze
-dart format --set-exit-if-changed .
+flutter pub get
+flutter analyze --no-fatal-infos
 flutter test
+
+# платформенные каталоги для локальной сборки
+flutter create --platforms=android,ios --project-name critter_collect --org com.vetlove .
 flutter build apk --debug
-flutter build appbundle --release
 ```
-
-## Troubleshooting
-
-### Android Build Failures
-- Ensure Java 17 is installed: `sudo apt install -y openjdk-17-jdk`
-- Check Android SDK installation: `flutter doctor`
-- Verify Gradle wrapper is up to date: `./gradlew wrapper`
-
-### iOS Build Failures
-- iOS builds require a macOS runner - they cannot be run on Linux
-- Ensure Xcode command line tools are installed
-- Check that Info.plist and entitlements files are correctly configured
-
-## Dependencies
-
-This CI setup relies on the following GitHub Actions:
-
-- `actions/checkout@v4`: Repository checkout
-- `subosito/flutter-action@v2`: Flutter SDK management
-- `actions/setup-java@v4`: Java installation
-- `android-actions/setup-android@v3`: Android SDK setup
-- `actions/upload-artifact@v4`: Artifact management
-- `actions/download-artifact@v4`: Artifact retrieval

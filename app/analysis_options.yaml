@@ -1,0 +1,6 @@
+# Линты Flutter для IDE и редактора.
+#
+# В CI анализ запускается как `flutter analyze --no-fatal-infos`:
+# ошибки и предупреждения (unused_import и т.п.) ломают пайплайн,
+# stylistic-подсказки уровня info — нет.
+include: package:flutter_lints/flutter.yaml
