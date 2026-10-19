@@ -89,16 +89,28 @@ jobs:
 
       # firebase_auth/geolocator требуют minSdk 23, а шаблон ставит
       # flutter.minSdkVersion (21 на Flutter 3.24).
-      - name: Raise minSdk to 23
+      #
+      # AGP 8.1 из шаблона Flutter 3.24 содержит D8, который падает с
+      # NullPointerException на актуальных jar'ах (error_prone_annotations,
+      # androidx.camera). Поднимаем AGP до 8.5.2 и Gradle до 8.7.
+      - name: Tune Android Gradle
         run: |
-          for f in android/app/build.gradle.kts android/app/build.gradle; do
-            [ -f "$f" ] || continue
-            sed -i \
-              -e 's/minSdk = flutter\.minSdkVersion/minSdk = 23/' \
-              -e 's/minSdkVersion flutter\.minSdkVersion/minSdkVersion 23/' \
-              "$f"
-          done
-          grep -rn 'minSdk' android/app/build.gradle* || true
+          sed -i \
+            -e 's/minSdk = flutter\.minSdkVersion/minSdk = 23/' \
+            -e 's/minSdkVersion flutter\.minSdkVersion/minSdkVersion 23/' \
+            android/app/build.gradle
+
+          sed -i \
+            -e 's/id "com.android.application" version "[0-9.]*"/id "com.android.application" version "8.5.2"/' \
+            -e 's/id "org.jetbrains.kotlin.android" version "[0-9.]*"/id "org.jetbrains.kotlin.android" version "1.9.24"/' \
+            android/settings.gradle
+
+          sed -i 's|gradle-[0-9.]*-all\.zip|gradle-8.7-all.zip|' \
+            android/gradle/wrapper/gradle-wrapper.properties
+
+          grep -rnE 'minSdk|com.android.application|distributionUrl' \
+            android/app/build.gradle android/settings.gradle \
+            android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Install dependencies
         run: flutter pub get
@@ -162,7 +174,7 @@ jobs:
           sed -i '' \
             -e 's/IPHONEOS_DEPLOYMENT_TARGET = 12.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' \
             -e 's/IPHONEOS_DEPLOYMENT_TARGET = 13.0;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' \
-            -E 's/PRODUCT_NAME = [^;]+;/PRODUCT_NAME = Runner;/g' \
+            -e 's/PRODUCT_NAME = [^;]*;/PRODUCT_NAME = Runner;/g' \
             ios/Runner.xcodeproj/project.pbxproj
           if [ -f ios/Podfile ]; then
             sed -i '' \
