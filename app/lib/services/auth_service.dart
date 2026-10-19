@@ -146,8 +146,8 @@ class AuthService {
     return _trades
         .where(
           Filter.or(
-            Filter.equal('fromUid', uid),
-            Filter.equal('toUid', uid),
+            Filter('fromUid', isEqualTo: uid),
+            Filter('toUid', isEqualTo: uid),
           ),
         )
         .orderBy('createdAt', descending: true)

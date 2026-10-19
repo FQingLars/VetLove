@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../models/animal_species.dart';
 import '../models/collection_card.dart';
 import 'rarity_widgets.dart';
 
@@ -72,11 +73,11 @@ class CollectionCardWidget extends StatelessWidget {
                       child: Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
                     ),
                   if (card.status == CardStatus.listedForTrade)
-                    Positioned(
+                    const Positioned(
                       left: 4,
                       bottom: 4,
                       child: Chip(
-                        label: const Text('В обмене', style: TextStyle(fontSize: 10)),
+                        label: Text('В обмене', style: TextStyle(fontSize: 10)),
                         visualDensity: VisualDensity.compact,
                       ),
                     ),

@@ -64,10 +64,13 @@ class CollectionRepository {
         (c) => c.species.speciesId == speciesId && c.status != CardStatus.tradedAway,
       );
 
-  Future<void> updateCard(CollectionCard card) =>
-      _cards?.put(card.cardId, card.toMap());
+  Future<void> updateCard(CollectionCard card) async {
+    await _cards?.put(card.cardId, card.toMap());
+  }
 
-  Future<void> removeCard(String cardId) => _cards?.delete(cardId);
+  Future<void> removeCard(String cardId) async {
+    await _cards?.delete(cardId);
+  }
 
   /// Пометить карточку как переданную в трейде.
   Future<void> markTradedAway(String cardId) async {

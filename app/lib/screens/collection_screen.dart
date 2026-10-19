@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/animal_species.dart';
+import '../models/collection_card.dart';
 import '../providers/collection_provider.dart';
 import '../widgets/collection_card_widget.dart';
 import '../widgets/rarity_widgets.dart';

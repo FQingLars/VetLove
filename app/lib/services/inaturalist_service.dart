@@ -22,7 +22,7 @@ class InaturalistService {
               connectTimeout: const Duration(seconds: 10),
               receiveTimeout: const Duration(seconds: 20),
               headers: {
-                if (apiKey != null && apiKey!.isNotEmpty)
+                if (apiKey?.isNotEmpty ?? false)
                   'X-Vision-Client-Id': apiKey,
               },
             ));

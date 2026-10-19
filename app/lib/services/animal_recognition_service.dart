@@ -197,7 +197,3 @@ class AnimalRecognitionService {
   /// Шанс «блестящей» вариации ~2%.
   bool rollShiny() => _random.nextDouble() < 0.02;
 }
-
-extension _FirstOrNull<T> on List<T> {
-  T? get firstOrNull => isEmpty ? null : first;
-}
