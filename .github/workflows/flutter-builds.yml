@@ -196,9 +196,10 @@ jobs:
 
       # Сборка под симулятор: подпись не требуется вовсе, поэтому результат
       # не зависит от наличия Apple Developer аккаунта.
+      # Flutter не поддерживает release для симулятора, поэтому --debug.
       - name: Build .app for simulator
         run: |
-          flutter build ios --simulator --release \
+          flutter build ios --simulator --debug \
             --dart-define=INATURALIST_API_KEY="$INATURALIST_KEY"
           ls -d build/ios/iphonesimulator/*.app
 
