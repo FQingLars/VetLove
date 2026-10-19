@@ -63,8 +63,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # android-actions/setup-android@v3 не используется: экшен падает на
+      # `sdkmanager tools` (пакет удалён из репозитория SDK). На образе
+      # ubuntu-latest Android SDK уже установлен, недостающие компоненты
+      # Gradle докачивает сам.
 
       - uses: subosito/flutter-action@v2
         with:
@@ -127,7 +129,9 @@ jobs:
     needs: analyze
     # Сборка .ipa требует сертификатов Apple, которых в secrets нет,
     # поэтому собираем неподписанный .app бандл.
-    runs-on: macos-14
+    # macos-15 нужен из-за Xcode 16: FirebaseSharedSwift использует
+    # модификатор `sending` из Swift 6, на Xcode 15 (macos-14) не компилируется.
+    runs-on: macos-15
     defaults:
       run:
         working-directory: app
